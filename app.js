@@ -1,17 +1,29 @@
+require('dotenv').config()
+
 const express         =     require('express')
   , passport          =     require('passport')
   , cookieParser      =     require('cookie-parser')
   , session           =     require('express-session')
   , bodyParser        =     require('body-parser')
-  , config            =     require('./configuration/config')
   , app               =     express();
 
 var GoogleStrategy = require('passport-google-oauth20').Strategy;
+var FacebookStrategy = require('passport-facebook').Strategy
+
+passport.use(new FacebookStrategy({
+  clientID: process.env.FACEBOOK_APP_ID,
+  clientSecret: process.env.FACEBOOK_APP_SECRET,
+  callbackURL: "http://localhost:3000/auth/facebook/callback"
+},
+function(accessToken, refreshToken, profile, cb) {
+  return cb(null, profile)
+}
+));
 
 passport.use(new GoogleStrategy({
-    clientID: config.api_key,
-    clientSecret: config.api_secret,
-    callbackURL: config.callback_url
+    clientID: process.env.GOOGLE_API_KEY,
+    clientSecret: process.env.GOOGLE_API_SECRET,
+    callbackURL: "http://localhost:3000/auth/google/callback"
   },
   function(accessToken, refreshToken, profile, done) {
     return done(null, profile);
@@ -42,12 +54,20 @@ app.get('/', function(req, res){
 
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }));
 
-app.get('/auth/google/callback', 
+app.get('/auth/google/callback',
   passport.authenticate('google',  { successRedirect : '/', failureRedirect: '/login' }),
   function(req, res) {
     res.redirect('/');
   }
 );
+
+app.get('/auth/facebook', passport.authenticate('facebook'))
+
+app.get('/auth/facebook/callback',
+  passport.authenticate('facebook', { failureRedirect: '/login' }),
+  function(req, res) {
+    res.redirect('/');
+  });
 
 app.get('/logout', function(req, res){
   req.logout();
